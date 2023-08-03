@@ -1,10 +1,9 @@
-#include "listener.h"
-#include "data_structure.h"
+#include "main.h"
 
 /*
-    listeners listen from all topics
+    at each listener is assigned one particular topic in order to test different things;
 */
-void *listener(void *arg){
+void *listener_routine(void *arg){
     int n_listener = (intptr_t)arg;
     int topic = n_listener % N_TOPIC;
     printf("Creating Listener %d from topic %d\n", n_listener + 1, topic  + 1);
