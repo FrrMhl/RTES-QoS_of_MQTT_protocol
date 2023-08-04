@@ -30,34 +30,47 @@
 
     private semaphores where subscribere waiting new messages;
 
+    matrix to distinguish every listener; 
+
     param used by broker to process dup messages;
 
-    param used bu broker to choose the correct policy to use;
+    param used by listeners to process dup messages;
+
+    param used by broker to choose the correct policy to use;
 
     param used by broker to send message to the correct subscribers;
 
-    param use by sender to stop sending of the same message;
+    param used by sender to stop sending the same message;
 
-    with the matrix we can see who are the subscribers to send the messages of that topic;
-    the matrix is inizialized at the same manner that i use to assign the topic to a every listener;
+    param used by broker to stop sending the same message;
+
+    param used by listener to know when there are no more senders;
+
 */
 struct broker_t{
     sem_t mutex_topic;
     sem_t message_is_arrived;
     sem_t waiting_end_broker;
     sem_t semaphore_subscriber[N_TOPIC][N_LISTENER];
+    int matrix_of_subscriber[N_TOPIC][N_LISTENER];
     int message_dup;
+    int message_dup_broker[N_TOPIC][N_LISTENER];
     int message_qos;
     int topic;
     int puback;
-    int matrix_of_subscriber[N_TOPIC][N_LISTENER]; 
+    int puback_broker;
+    int disconnected;
 };
 
 void init_broker(struct broker_t *);
 
-void receive_with_qos_one(int, int, struct broker_t *);
+void broker_send_with_qos_one(int, struct broker_t *);
 
-void receive_with_qos_two(int, int, struct broker_t *);
+void broker_receive_with_qos_one(int, struct broker_t *);
+
+void broker_send_with_qos_two(int, struct broker_t *);
+
+void broker_receive_with_qos_two(int, struct broker_t *);
 
 void *broker_routine(void *);
 
@@ -71,6 +84,10 @@ void *broker_routine(void *);
 //                                                                                   //
 ///////////////////////////////////////////////////////////////////////////////////////
 
+void listener_receive_with_qos_one(int, int, struct broker_t *);
+
+void listener_receive_with_qos_two(int, int, struct broker_t *);
+
 void *listener_routine(void *);
 
 
@@ -83,9 +100,9 @@ void *listener_routine(void *);
 //                                                                                   //
 ///////////////////////////////////////////////////////////////////////////////////////
 
-void send_with_qos_one(int, int, int, struct broker_t *);
+void sender_send_with_qos_one(int, int, struct broker_t *);
 
-void send_with_qos_two(int, int, int, struct broker_t *);
+void sender_send_with_qos_two(int, int, struct broker_t *);
 
 void *sender_routine(void *);
 

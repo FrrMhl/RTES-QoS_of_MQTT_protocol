@@ -1,8 +1,9 @@
 #include "main.h"
 
-void send_with_qos_one(int n_sender, int topic, int qos, struct broker_t *b){
+void sender_send_with_qos_one(int n_sender, int topic, struct broker_t *b){
     
     int time_before_next_sending = 0;
+    int qos = 0;
 
     sem_wait(&b->mutex_topic);
 
@@ -13,18 +14,18 @@ void send_with_qos_one(int n_sender, int topic, int qos, struct broker_t *b){
     b->message_dup += 1;
     b->message_qos = qos;
     b->topic = topic;
-    printf("Sender %d is sending a MESSAGE with DUP = %d\n", n_sender, b->message_dup);
+    printf("Sender %d is sending a MESSAGE with DUP = %d...\n", n_sender, b->message_dup);
 
     sem_post(&b->message_is_arrived);
 
     while(1){
         if(time_before_next_sending == TIMEOUT){
             if(b->puback){
-                printf("Sender %d is receiving a PUBACK\n", n_sender);
+                printf("Sender %d is receiving a PUBACK...\n", n_sender);
                 break;
             }else{
                 b->message_dup += 1;
-                printf("Sender %d is sending a MESSAGE with DUP = %d\n", n_sender, b->message_dup);
+                printf("TIMEOUT...Sender %d is resending a MESSAGE with DUP = %d...\n", n_sender, b->message_dup);
                 time_before_next_sending = 0;
             }
         }else
@@ -36,8 +37,8 @@ void send_with_qos_one(int n_sender, int topic, int qos, struct broker_t *b){
     sem_post(&b->mutex_topic);
 }
 
-void send_with_qos_two(int n_sender, int topic, int qos, struct broker_t *b){
-    
+void sender_send_with_qos_two(int n_sender, int topic, struct broker_t *b){
+
 }
 
 /*
@@ -50,18 +51,18 @@ void *sender_routine(void *arg){
     extern struct broker_t broker; 
     int n_sender = (intptr_t)arg;
     int topic = n_sender % N_TOPIC;
-    printf("Creating Sender %d to topic %d\n", n_sender + 1, topic + 1);
+    printf("Creating Sender %d for TOPIC %d...\n", n_sender, topic);
 
     for(int i=0; i<N_ITER; i++){
         int QoS = i % 2;
-        printf("Sender %d are sending with QoS %d...\n", n_sender + 1, QoS + 1);
+        printf("Sender %d are sending with QoS %d...\n", n_sender, QoS + 1);
 
         if(QoS == 0)
-            send_with_qos_one(n_sender, topic, QoS, &broker);
+            sender_send_with_qos_one(n_sender, topic, &broker);
         else
-            send_with_qos_two(n_sender, topic, QoS, &broker);
+            sender_send_with_qos_two(n_sender, topic, &broker);
     }
 
-    printf("Ending Sender %d\n", n_sender + 1);
+    printf("Ending Sender %d...\n", n_sender);
     return NULL;
 }
