@@ -1,5 +1,9 @@
 #include "main.h"
 
+
+
+
+
 void init_broker(struct broker_t *b){
     
     sem_init(&b->mutex_topic, 0, 1);
@@ -23,7 +27,18 @@ void init_broker(struct broker_t *b){
     b->puback = 0;
     b->puback_broker = 0;
     b->disconnected = 0;
+
+    b->pubrec = 0;
+    b->pubrel = 0;
+    b->pubcomp = 0;
+    b->pubrec_broker = 0;
+    b->pubrel_broker = 0;
+    b->pubcomp_broker = 0;
 }
+
+
+
+
 
 /*
     broker manages one lister at time and so, the PUBACK is sent to the sender
@@ -36,32 +51,36 @@ void broker_send_with_qos_one(int topic, struct broker_t *b){
     for(int i=0; i<N_LISTENER; i++){
         if(b->matrix_of_subscriber[topic][i]){
 
-            b->puback_broker = 0;
             b->message_dup_broker[topic][i] += 1;
             int time_before_next_sending = 0;
 
-            printf("Broker is sending a MESSAGE to the listener %d of TOPIC %d with DUP...\n", i, topic, b->message_dup_broker);
+            printf("Broker is sending a MESSAGE to the listener %d of TOPIC %d with DUP...\n", i, topic, b->message_dup_broker[topic][i]);
 
             sem_post(&b->semaphore_subscriber[topic][i]);
 
             while(1){
                 if(time_before_next_sending == TIMEOUT){
                     if(b->puback_broker){
+                        b->puback_broker = 0;
                         printf("Broker is receiving a PUBACK...\n");
                         break;
                     }else{
                         b->message_dup_broker[topic][i] += 1;
-                        printf("TIMEOUT...Broker is resending a MESSAGE with DUP = %d...\n", b->message_dup_broker);
+                        printf("TIMEOUT...Broker is resending a MESSAGE with DUP = %d...\n", b->message_dup_broker[topic][i]);
                         time_before_next_sending = 0;
                     }
                 }else
                     time_before_next_sending += 1;
             }
         }
-
-        printf("All the listeners send their PUBACK...\n");
     }
+
+    printf("All the listeners send their PUBACK...\n");
 }
+
+
+
+
 
 /*
     all the message are processed, also the duplicated one;
@@ -72,10 +91,8 @@ void broker_send_with_qos_one(int topic, struct broker_t *b){
 void broker_receive_with_qos_one(int topic, struct broker_t *b){
 
     while(1){
-        if(b->message_dup == -1){
-            b->puback = 0;
+        if(b->message_dup == -1)
             break;
-        }
 
         printf("Broker is sending new MESSAGE to the listeners...\n");
 
@@ -86,15 +103,93 @@ void broker_receive_with_qos_one(int topic, struct broker_t *b){
         b->message_dup -= 1;
         b->puback = 1;
     }
+    b->puback = 0;
 }
 
+
+
+
+
+/*
+    broker manages one lister at time;
+
+    after the broker receives the PUBCOMP from one listener, pass to the next;
+*/
 void broker_send_with_qos_two(int topic, struct broker_t *b){
     
+    for(int i=0; i<N_LISTENER; i++){
+        if(b->matrix_of_subscriber[topic][i]){
+
+            b->message_dup_broker[topic][i] += 1;
+            int time_before_next_sending = 0;
+
+            printf("Broker is sending a MESSAGE to the listener %d of TOPIC %d with DUP...\n", i, topic, b->message_dup_broker[topic][i]);
+
+            sem_post(&b->semaphore_subscriber[topic][i]);
+
+            while(1){
+                if(time_before_next_sending == TIMEOUT){
+                    if(b->pubrec_broker){
+                        printf("Broker is receiving a PUBREC...\n");
+                        b->message_dup_broker[topic][i] = 0;
+                        b->pubrec_broker = 0;
+                        break;
+                    }else{
+                        b->message_dup_broker[topic][i] += 1;
+                        printf("TIMEOUT...Broker is resending a MESSAGE with DUP = %d...\n", b->message_dup_broker[topic][i]);
+                        time_before_next_sending = 0;
+                    }
+                }else
+                    time_before_next_sending += 1;
+            }
+        
+            printf("Broker is sending a PUBREL to the listener...\n");
+            b->pubrel_broker = 1;
+
+            while(1){
+                if(b->pubcomp_broker){
+                    printf("Broker %d is receiving a PUBCOMP...\n");
+                    b->pubcomp_broker = 0;
+                    break;
+                }
+            }
+        }
+
+    }
+
+    printf("All the listeners send their PUBCOMP...\n");
 }
 
+
+
+
+
+/*
+    broker process only one message without duplicates e sends message to 
+    the subscribers only after saing to the sender that his message is arrived;
+*/
 void broker_receive_with_qos_two(int topic, struct broker_t *b){
 
+    b->pubrec = 1;
+
+    while(1){
+        if(b->pubrel){
+            printf("Broker is receiving a PUBREL...\n");
+            b->pubrel = 0;
+            break;
+        }
+    }
+
+    printf("Broker is sending the ONLY new MESSAGE to the listeners...\n");
+
+    broker_send_with_qos_two(topic, b);
+
+    printf("Broker is sending PUBCOMP to the sender...\n");
+    b->pubcomp = 1;
 }
+
+
+
 
 
 /*

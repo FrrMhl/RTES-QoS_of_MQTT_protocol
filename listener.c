@@ -1,5 +1,9 @@
 #include "main.h"
 
+
+
+
+
 void listener_receive_with_qos_one(int topic, int n_listener, struct broker_t *b){
 
     while(1){
@@ -14,9 +18,36 @@ void listener_receive_with_qos_one(int topic, int n_listener, struct broker_t *b
     }
 }
 
+
+
+
+
 void listener_receive_with_qos_two(int topic, int n_listener, struct broker_t *b){
 
+    printf("Listener %d is receiving new MESSAGE from the broker...\n", n_listener);
+
+    b->pubrec_broker = 1;
+
+    while(1){
+        if(b->pubrel_broker){
+            printf("Listener is receiving a PUBREL...\n");
+            b->pubrel_broker = 0;
+            break;
+        }
+    }
+
+    /*
+        listeners send the ONLY ONE message to the application;
+    */  
+    
+    printf("Listener %d is sending PUBCOMP to the broker...\n", n_listener);
+
+    b->pubcomp_broker = 1;
 }
+
+
+
+
 
 /*
     at each listener is assigned one particular topic in order to test different things;

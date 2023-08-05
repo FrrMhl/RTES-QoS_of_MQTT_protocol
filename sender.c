@@ -1,5 +1,9 @@
 #include "main.h"
 
+
+
+
+
 void sender_send_with_qos_one(int n_sender, int topic, struct broker_t *b){
     
     int time_before_next_sending = 0;
@@ -9,7 +13,7 @@ void sender_send_with_qos_one(int n_sender, int topic, struct broker_t *b){
 
     /*
         send the initial message and if after a while we do not
-        receive the PUBACK message, resend the message  
+        receive the PUBACK message, resend the message;  
     */
     b->message_dup += 1;
     b->message_qos = qos;
@@ -37,9 +41,72 @@ void sender_send_with_qos_one(int n_sender, int topic, struct broker_t *b){
     sem_post(&b->mutex_topic);
 }
 
+
+
+
+
 void sender_send_with_qos_two(int n_sender, int topic, struct broker_t *b){
 
+    int time_before_next_sending = 0;
+    int qos = 0;
+
+    sem_wait(&b->mutex_topic);
+
+    /*
+        send message and wait PUBREC; 
+        if it don't arrived, sender resend the message and wait;
+        when arrived PUBREC from broker, sender send PUBREL to inform the 
+        broker to process the message;
+        when broken terminates the processing (sending message to subscribers), sends
+        PUBCOMP to the sender;
+
+        with QoS 2, broker sends to the subscriber after saing to the sender that
+        his message is arrived (in QoS 1 broker sends to the subscriber first and then saing
+        to the sender and for this there can be duplicates);
+    */
+
+    b->message_dup += 1;
+    b->message_qos = qos;
+    b->topic = topic;
+    printf("Sender %d is sending a MESSAGE with DUP = %d...\n", n_sender, b->message_dup);
+
+    sem_post(&b->message_is_arrived);
+
+    while(1){
+        if(time_before_next_sending == TIMEOUT){
+            if(b->pubrec){
+                printf("Sender %d is receiving a PUBREC...\n", n_sender);
+                b->pubrec = 0;
+                b->message_dup = 0;
+                break;
+            }else{
+                b->message_dup += 1;
+                printf("TIMEOUT...Sender %d is resending a MESSAGE with DUP = %d...\n", n_sender, b->message_dup);
+                time_before_next_sending = 0;
+            }
+        }else
+            time_before_next_sending += 1;
+    }
+
+    printf("Sender %d is sending a PUBREL to the broker...\n", n_sender);
+    b->pubrel = 1;
+
+    while(1){
+        if(b->pubcomp){
+            printf("Sender %d is receiving a PUBCOMP...\n", n_sender);
+            b->pubcomp = 0;
+            break;
+        }
+    }
+
+    sem_wait(&b->waiting_end_broker);
+
+    sem_post(&b->mutex_topic);
 }
+
+
+
+
 
 /*
     each seder send to specific topic and alternate different QoS;

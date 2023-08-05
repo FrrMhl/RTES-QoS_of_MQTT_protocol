@@ -9,10 +9,10 @@
 #include <stdint.h>
 
 #define N_TOPIC 2
-#define N_SENDER 10
+#define N_SENDER 3
 #define N_LISTENER 4
 #define N_ITER 3
-#define TIMEOUT 999
+#define TIMEOUT 100
 
 ///////////////////////////////////////////////////////////////////////////////////////
 //                                                                                   //
@@ -46,8 +46,20 @@
 
     param used by listener to know when there are no more senders;
 
+    param used by sender to stop sending the same message;
+    
+    param used by sender to say to the broker to process his message;
+
+    param used by broker to say to the sender that his message is delivered;
+
+    param used by broker to stop sending the same message;
+    
+    param used by broker to say to the sender to process his message;
+
+    param used by listener to say to the broker that his message is delivered;
 */
 struct broker_t{
+
     sem_t mutex_topic;
     sem_t message_is_arrived;
     sem_t waiting_end_broker;
@@ -60,6 +72,13 @@ struct broker_t{
     int puback;
     int puback_broker;
     int disconnected;
+
+    int pubrec;
+    int pubrel;
+    int pubcomp;
+    int pubrec_broker;
+    int pubrel_broker;
+    int pubcomp_broker;
 };
 
 void init_broker(struct broker_t *);
