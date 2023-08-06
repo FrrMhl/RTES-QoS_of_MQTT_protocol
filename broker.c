@@ -35,7 +35,7 @@ void init_broker(struct broker_t *b){
     b->pubrel_broker = 0;
     b->pubcomp_broker = 0;
 
-    b->comunication_id = 0;
+    b->communication_id = 0;
 }
 
 
@@ -56,19 +56,19 @@ void broker_send_with_qos_one(int topic, struct broker_t *b){
             b->message_dup_broker[topic][i] += 1;
             int time_before_next_sending = 0;
 
-            printf("( Comunication %d ) Broker is sending a MESSAGE to the listener %d of TOPIC %d with DUP %d...\n", b->comunication_id, i, topic, b->message_dup_broker[topic][i]);
+            printf("( Communication %d ) Broker is sending a MESSAGE to the listener %d of TOPIC %d with DUP %d...\n", b->communication_id, i, topic, b->message_dup_broker[topic][i]);
 
             sem_post(&b->semaphore_subscriber[topic][i]);
 
             while(1){
                 if(b->puback_broker){
                     b->puback_broker = 0;
-                    printf("( Comunication %d ) Broker is receiving a PUBACK...\n", b->comunication_id);
+                    printf("( Communication %d ) Broker is receiving a PUBACK...\n", b->communication_id);
                     break;
                 }
                 if(time_before_next_sending == TIMEOUT){
                     b->message_dup_broker[topic][i] += 1;
-                    printf("( Comunication %d ) TIMEOUT -> Broker is resending a MESSAGE with DUP = %d...\n", b->comunication_id, b->message_dup_broker[topic][i]);
+                    printf("( Communication %d ) TIMEOUT -> Broker is resending a MESSAGE with DUP = %d...\n", b->communication_id, b->message_dup_broker[topic][i]);
                     time_before_next_sending = 0;
                 }else
                     time_before_next_sending += 1;
@@ -76,7 +76,7 @@ void broker_send_with_qos_one(int topic, struct broker_t *b){
         }
     }
 
-    printf("( Comunication %d ) All the listeners send their PUBACK...\n", b->comunication_id);
+    printf("( Communication %d ) All the listeners send their PUBACK...\n", b->communication_id);
 }
 
 
@@ -99,12 +99,12 @@ void broker_receive_with_qos_one(int topic, struct broker_t *b){
         if(b->message_dup == -1)
             break;
 
-        printf("( Comunication %d ) Broker is sending new MESSAGE to the listeners...\n", b->comunication_id);
+        printf("( Communication %d ) Broker is sending new MESSAGE to the listeners...\n", b->communication_id);
 
         broker_send_with_qos_one(topic, b);
 
         if(only_one_ack_to_sender == 0){
-            printf("( Comunication %d ) Broker is sending PUBACK to the sender...\n",b->comunication_id);
+            printf("( Communication %d ) Broker is sending PUBACK to the sender...\n",b->communication_id);
             only_one_ack_to_sender = 1;
             b->puback = 1;
         }
@@ -130,31 +130,31 @@ void broker_send_with_qos_two(int topic, struct broker_t *b){
             b->message_dup_broker[topic][i] += 1;
             int time_before_next_sending = 0;
 
-            printf("( Comunication %d ) Broker is sending a MESSAGE to the listener %d of TOPIC %d with DUP %d...\n", b->comunication_id, i, topic, b->message_dup_broker[topic][i]);
+            printf("( Communication %d ) Broker is sending a MESSAGE to the listener %d of TOPIC %d with DUP %d...\n", b->communication_id, i, topic, b->message_dup_broker[topic][i]);
 
             sem_post(&b->semaphore_subscriber[topic][i]);
 
             while(1){
                 if(b->pubrec_broker){
-                    printf("( Comunication %d ) Broker is receiving a PUBREC...\n", b->comunication_id);
+                    printf("( Communication %d ) Broker is receiving a PUBREC...\n", b->communication_id);
                     b->message_dup_broker[topic][i] = 0;
                     b->pubrec_broker = 0;
                     break;
                 }
                 if(time_before_next_sending == TIMEOUT){
                     b->message_dup_broker[topic][i] += 1;
-                    printf("( Comunication %d ) TIMEOUT -> Broker is resending a MESSAGE with DUP = %d...\n", b->comunication_id, b->message_dup_broker[topic][i]);
+                    printf("( Communication %d ) TIMEOUT -> Broker is resending a MESSAGE with DUP = %d...\n", b->communication_id, b->message_dup_broker[topic][i]);
                     time_before_next_sending = 0;
                 }else
                     time_before_next_sending += 1;
             }
         
-            printf("( Comunication %d ) Broker is sending a PUBREL to the listener...\n", b->comunication_id);
+            printf("( Communication %d ) Broker is sending a PUBREL to the listener...\n", b->communication_id);
             b->pubrel_broker = 1;
 
             while(1){
                 if(b->pubcomp_broker){
-                    printf("( Comunication %d ) Broker is receiving a PUBCOMP...\n", b->comunication_id);
+                    printf("( Communication %d ) Broker is receiving a PUBCOMP...\n", b->communication_id);
                     b->pubcomp_broker = 0;
                     break;
                 }
@@ -163,7 +163,7 @@ void broker_send_with_qos_two(int topic, struct broker_t *b){
 
     }
 
-    printf("( Comunication %d ) All the listeners send their PUBCOMP...\n", b->comunication_id);
+    printf("( Communication %d ) All the listeners send their PUBCOMP...\n", b->communication_id);
 }
 
 
@@ -180,17 +180,17 @@ void broker_receive_with_qos_two(int topic, struct broker_t *b){
 
     while(1){
         if(b->pubrel){
-            printf("( Comunication %d ) Broker is receiving a PUBREL...\n", b->comunication_id);
+            printf("( Communication %d ) Broker is receiving a PUBREL...\n", b->communication_id);
             b->pubrel = 0;
             break;
         }
     }
 
-    printf("( Comunication %d ) Broker is sending the ONLY ONE new MESSAGE to the listeners...\n", b->comunication_id);
+    printf("( Communication %d ) Broker is sending the ONLY ONE new MESSAGE to the listeners...\n", b->communication_id);
 
     broker_send_with_qos_two(topic, b);
 
-    printf("( Comunication %d ) Broker is sending PUBCOMP to the sender...\n", b->comunication_id);
+    printf("( Communication %d ) Broker is sending PUBCOMP to the sender...\n", b->communication_id);
     b->pubcomp = 1;
 }
 
@@ -204,29 +204,30 @@ void broker_receive_with_qos_two(int topic, struct broker_t *b){
 void *broker_routine(void *arg){
 
     extern struct broker_t broker; 
-    printf("          [ Creating Broker ]\n");
+    printf("\n          [ Creating Broker ]\n");
 
     for(int i=0; i<N_ITER * N_SENDER; i++){
 
         sem_wait(&broker.message_is_arrived);
-        printf("( Comunication %d ) Broker is receiving one message with QoS %d...\n", broker.comunication_id, broker.message_qos + 1);
+        printf("( Communication %d ) Broker is receiving one MESSAGE with QoS %d...\n", broker.communication_id, broker.message_qos + 1);
+        printf("( Communication %d ) -> \'%s\'\n", broker.communication_id, broker.message);
 
         if(broker.message_qos == 0)
             broker_receive_with_qos_one(broker.topic, &broker);
         else
             broker_receive_with_qos_two(broker.topic, &broker);
         
-        printf("Broker are waiting next sender...\n");
+        printf("\n          [ Broker are waiting next sender... ]\n\n");
         sem_post(&broker.waiting_end_broker);
     }
     
-    printf("          [ Broker comunicates to listeners that there are no more senders ]\n");
+    printf("          [ Broker communicates to listeners that there are no more senders ]\n\n");
 
     broker.disconnected = 1;
     for(int i=0; i<N_TOPIC; i++)
         for(int j=0; j<N_LISTENER; j++)
             sem_post(&broker.semaphore_subscriber[i][j]);
 
-    printf("          [ All the Senders are disconnected -> Ending Broker ]\n");
+    printf("          [ All the Senders are disconnected -> Ending Broker ]\n\n");
     return NULL;
 }

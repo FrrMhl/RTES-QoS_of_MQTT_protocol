@@ -38,7 +38,7 @@ int main(){
     
     pthread_join(thread_broker, NULL);
 
-    printf("\n\n          [ All senders and listeners are disconnected. ]\n");
+    printf("\n          [ All senders and listeners are disconnected. ]\n\n");
 
     return 0;
 }

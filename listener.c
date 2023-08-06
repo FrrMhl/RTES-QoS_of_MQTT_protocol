@@ -4,22 +4,30 @@
 
 
 
+/*
+    listeners send also first PUBACK to the broker and meanwhile process the other duplicates
+*/
 void listener_receive_with_qos_one(int topic, int n_listener, struct broker_t *b){
 
+    int only_one_ack_to_broker = 0;
     while(1){
         if(b->message_dup_broker[topic][n_listener] == -1)
             break;
 
-        printf("( Comunication %d ) Listener %d is receiving new MESSAGE from the broker...\n", b->comunication_id, n_listener);
-        
+        printf("( Communication %d ) Listener %d is receiving new MESSAGE from the broker...\n", b->communication_id, n_listener);
+        printf("( Communication %d )  -> \'%s\'\n", b->communication_id, b->message);
+
         /*
-            listeners send message to the application;
+            here listener comunicate with the underlaying applicaton
         */
 
-        printf("( Comunication %d ) Listener %d is sending PUBACK to the broker...\n", b->comunication_id, n_listener);
+        if(only_one_ack_to_broker == 0){
+            printf("( Communication %d ) Listener %d is sending PUBACK to the broker...\n", b->communication_id, n_listener);
+            only_one_ack_to_broker = 1;
+            b->puback_broker = 1;
+        }
 
         b->message_dup_broker[topic][n_listener] -= 1;
-        b->puback_broker = 1;
     }
 }
 
@@ -29,23 +37,24 @@ void listener_receive_with_qos_one(int topic, int n_listener, struct broker_t *b
 
 void listener_receive_with_qos_two(int topic, int n_listener, struct broker_t *b){
 
-    printf("( Comunication %d ) Listener %d is receiving new MESSAGE from the broker...\n", b->comunication_id, n_listener);
+    printf("( Communication %d ) Listener %d is receiving new MESSAGE from the broker...\n", b->communication_id, n_listener);
+    printf("( Communication %d )  -> \'%s\'\n", b->communication_id, b->message);
 
     b->pubrec_broker = 1;
 
     while(1){
         if(b->pubrel_broker){
-            printf("( Comunication %d ) Listener is receiving a PUBREL...\n", b->comunication_id);
+            printf("( Communication %d ) Listener is receiving a PUBREL...\n", b->communication_id);
             b->pubrel_broker = 0;
             break;
         }
-    }
-
-    /*
-        listeners send the ONLY ONE message to the application;
-    */  
+    } 
     
-    printf("( Comunication %d ) Listener %d is sending PUBCOMP to the broker...\n", b->comunication_id, n_listener);
+    /*
+        here listener comunicate with the underlaying applicaton
+    */
+
+    printf("( Communication %d ) Listener %d is sending PUBCOMP to the broker...\n", b->communication_id, n_listener);
 
     b->pubcomp_broker = 1;
 }
@@ -63,7 +72,7 @@ void *listener_routine(void *arg){
 
     int n_listener = (intptr_t)arg;
     int topic = n_listener % N_TOPIC;
-    printf("          [ Creating Listener %d for topic %d ]\n", n_listener, topic);
+    printf("\n          [ Creating Listener %d for topic %d ]\n\n", n_listener, topic);
 
     while(1){
         sem_wait(&broker.semaphore_subscriber[topic][n_listener]);
@@ -77,6 +86,6 @@ void *listener_routine(void *arg){
             listener_receive_with_qos_two(topic, n_listener, &broker);
     }
 
-    printf("          [ Ending Listener %d ]\n", n_listener);
+    printf("\n          [ Ending Listener %d ]\n\n", n_listener);
     return NULL;
 }

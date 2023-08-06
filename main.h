@@ -8,11 +8,11 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#define N_TOPIC 2
-#define N_SENDER 3
-#define N_LISTENER 4
-#define N_ITER 2
-#define TIMEOUT 9999
+#define N_TOPIC 3
+#define N_SENDER 4
+#define N_LISTENER 400
+#define N_ITER 3
+#define TIMEOUT 99999
 
 ///////////////////////////////////////////////////////////////////////////////////////
 //                                                                                   //
@@ -22,6 +22,9 @@
 
 /*
     binary mutex because broker can handle one topic at once;
+
+    param where store message that broker receives; i manage one sender at time so i 
+    do not need space for all senders;
 
     private semaphore where broker wait for new sender;
 
@@ -63,6 +66,8 @@
 struct broker_t{
 
     sem_t mutex_topic;
+    char message[255];
+
     sem_t message_is_arrived;
     sem_t waiting_end_broker;
     sem_t semaphore_subscriber[N_TOPIC][N_LISTENER];
@@ -82,7 +87,7 @@ struct broker_t{
     int pubrel_broker;
     int pubcomp_broker;
 
-    int comunication_id;
+    int communication_id;
 };
 
 void init_broker(struct broker_t *);
