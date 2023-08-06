@@ -4,7 +4,7 @@
 
 
 
-void sender_send_with_qos_one(int n_sender, int topic, struct broker_t *b){
+void sender_send_with_qos_one(int n_sender, int topic, struct broker_t *b, int iteration){
     
     int time_before_next_sending = 0;
     int qos = 0;
@@ -15,27 +15,29 @@ void sender_send_with_qos_one(int n_sender, int topic, struct broker_t *b){
         send the initial message and if after a while we do not
         receive the PUBACK message, resend the message;  
     */
-    b->message_dup += 1;
+    b->comunication_id = n_sender * (N_SENDER-1) + iteration; 
+    b->message_dup = 0;
     b->message_qos = qos;
     b->topic = topic;
-    printf("Sender %d is sending a MESSAGE with DUP = %d...\n", n_sender, b->message_dup);
+    printf("\n\n( Comunication %d ) Sender %d is sending a MESSAGE in QoS = %d with DUP = %d...\n", b->comunication_id, n_sender, qos + 1, b->message_dup);
 
     sem_post(&b->message_is_arrived);
 
     while(1){
+        if(b->puback){
+            printf("( Comunication %d ) Sender %d is receiving a PUBACK...\n", b->comunication_id, n_sender);
+            b->puback = 0;
+            break;
+        }
         if(time_before_next_sending == TIMEOUT){
-            if(b->puback){
-                printf("Sender %d is receiving a PUBACK...\n", n_sender);
-                break;
-            }else{
-                b->message_dup += 1;
-                printf("TIMEOUT...Sender %d is resending a MESSAGE with DUP = %d...\n", n_sender, b->message_dup);
-                time_before_next_sending = 0;
-            }
+            b->message_dup += 1;
+            printf("( Comunication %d ) TIMEOUT -> Sender %d is resending a MESSAGE with DUP = %d...\n", b->comunication_id, n_sender, b->message_dup);
+            time_before_next_sending = 0;
         }else
             time_before_next_sending += 1;
     }
 
+    printf("( Comunication %d ) Sender %d finished is turn...\n\n\n", b->comunication_id, n_sender);
     sem_wait(&b->waiting_end_broker);
 
     sem_post(&b->mutex_topic);
@@ -45,10 +47,10 @@ void sender_send_with_qos_one(int n_sender, int topic, struct broker_t *b){
 
 
 
-void sender_send_with_qos_two(int n_sender, int topic, struct broker_t *b){
+void sender_send_with_qos_two(int n_sender, int topic, struct broker_t *b, int iteration){
 
     int time_before_next_sending = 0;
-    int qos = 0;
+    int qos = 1;
 
     sem_wait(&b->mutex_topic);
 
@@ -64,41 +66,41 @@ void sender_send_with_qos_two(int n_sender, int topic, struct broker_t *b){
         his message is arrived (in QoS 1 broker sends to the subscriber first and then saing
         to the sender and for this there can be duplicates);
     */
-
-    b->message_dup += 1;
+    b->comunication_id = n_sender * (N_SENDER-1) + iteration; 
+    b->message_dup = 0;
     b->message_qos = qos;
     b->topic = topic;
-    printf("Sender %d is sending a MESSAGE with DUP = %d...\n", n_sender, b->message_dup);
+    printf("\n\n( Comunication %d ) Sender %d is sending a MESSAGE in QoS = %d with DUP = %d...\n", b->comunication_id, n_sender, qos + 1, b->message_dup);
 
     sem_post(&b->message_is_arrived);
 
     while(1){
+        if(b->pubrec){
+            printf("( Comunication %d ) Sender %d is receiving a PUBREC...\n", b->comunication_id, n_sender);
+            b->pubrec = 0;
+            b->message_dup = 0;
+            break;
+        }
         if(time_before_next_sending == TIMEOUT){
-            if(b->pubrec){
-                printf("Sender %d is receiving a PUBREC...\n", n_sender);
-                b->pubrec = 0;
-                b->message_dup = 0;
-                break;
-            }else{
-                b->message_dup += 1;
-                printf("TIMEOUT...Sender %d is resending a MESSAGE with DUP = %d...\n", n_sender, b->message_dup);
-                time_before_next_sending = 0;
-            }
+            b->message_dup += 1;
+            printf("( Comunication %d ) TIMEOUT -> Sender %d is resending a MESSAGE with DUP = %d...\n", b->comunication_id, n_sender, b->message_dup);
+            time_before_next_sending = 0;
         }else
             time_before_next_sending += 1;
     }
 
-    printf("Sender %d is sending a PUBREL to the broker...\n", n_sender);
+    printf("( Comunication %d ) Sender %d is sending a PUBREL to the broker...\n", b->comunication_id, n_sender);
     b->pubrel = 1;
 
     while(1){
         if(b->pubcomp){
-            printf("Sender %d is receiving a PUBCOMP...\n", n_sender);
+            printf("( Comunication %d ) Sender %d is receiving a PUBCOMP...\n", b->comunication_id, n_sender);
             b->pubcomp = 0;
             break;
         }
     }
 
+    printf("( Comunication %d ) Sender %d finished is turn...\n\n\n", b->comunication_id, n_sender);
     sem_wait(&b->waiting_end_broker);
 
     sem_post(&b->mutex_topic);
@@ -118,18 +120,18 @@ void *sender_routine(void *arg){
     extern struct broker_t broker; 
     int n_sender = (intptr_t)arg;
     int topic = n_sender % N_TOPIC;
-    printf("Creating Sender %d for TOPIC %d...\n", n_sender, topic);
+    printf("          [ Creating Sender %d for TOPIC %d ]\n", n_sender, topic);
 
     for(int i=0; i<N_ITER; i++){
         int QoS = i % 2;
-        printf("Sender %d are sending with QoS %d...\n", n_sender, QoS + 1);
+        printf("Sender %d is waiting to sending with QoS %d...\n", n_sender, QoS + 1);
 
         if(QoS == 0)
-            sender_send_with_qos_one(n_sender, topic, &broker);
+            sender_send_with_qos_one(n_sender, topic, &broker, i);
         else
-            sender_send_with_qos_two(n_sender, topic, &broker);
+            sender_send_with_qos_two(n_sender, topic, &broker, i);
     }
 
-    printf("Ending Sender %d...\n", n_sender);
+    printf("          [ Ending Sender %d ] \n", n_sender);
     return NULL;
 }

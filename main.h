@@ -11,8 +11,8 @@
 #define N_TOPIC 2
 #define N_SENDER 3
 #define N_LISTENER 4
-#define N_ITER 3
-#define TIMEOUT 100
+#define N_ITER 2
+#define TIMEOUT 9999
 
 ///////////////////////////////////////////////////////////////////////////////////////
 //                                                                                   //
@@ -57,6 +57,8 @@
     param used by broker to say to the sender to process his message;
 
     param used by listener to say to the broker that his message is delivered;
+
+    param used for better output
 */
 struct broker_t{
 
@@ -79,6 +81,8 @@ struct broker_t{
     int pubrec_broker;
     int pubrel_broker;
     int pubcomp_broker;
+
+    int comunication_id;
 };
 
 void init_broker(struct broker_t *);
@@ -119,9 +123,9 @@ void *listener_routine(void *);
 //                                                                                   //
 ///////////////////////////////////////////////////////////////////////////////////////
 
-void sender_send_with_qos_one(int, int, struct broker_t *);
+void sender_send_with_qos_one(int, int, struct broker_t *, int);
 
-void sender_send_with_qos_two(int, int, struct broker_t *);
+void sender_send_with_qos_two(int, int, struct broker_t *, int);
 
 void *sender_routine(void *);
 

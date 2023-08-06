@@ -10,8 +10,13 @@ void listener_receive_with_qos_one(int topic, int n_listener, struct broker_t *b
         if(b->message_dup_broker[topic][n_listener] == -1)
             break;
 
-        printf("Listener %d is receiving new MESSAGE from the broker...\n", n_listener);
-        printf("Listener %d is sending PUBACK to the broker...\n", n_listener);
+        printf("( Comunication %d ) Listener %d is receiving new MESSAGE from the broker...\n", b->comunication_id, n_listener);
+        
+        /*
+            listeners send message to the application;
+        */
+
+        printf("( Comunication %d ) Listener %d is sending PUBACK to the broker...\n", b->comunication_id, n_listener);
 
         b->message_dup_broker[topic][n_listener] -= 1;
         b->puback_broker = 1;
@@ -24,13 +29,13 @@ void listener_receive_with_qos_one(int topic, int n_listener, struct broker_t *b
 
 void listener_receive_with_qos_two(int topic, int n_listener, struct broker_t *b){
 
-    printf("Listener %d is receiving new MESSAGE from the broker...\n", n_listener);
+    printf("( Comunication %d ) Listener %d is receiving new MESSAGE from the broker...\n", b->comunication_id, n_listener);
 
     b->pubrec_broker = 1;
 
     while(1){
         if(b->pubrel_broker){
-            printf("Listener is receiving a PUBREL...\n");
+            printf("( Comunication %d ) Listener is receiving a PUBREL...\n", b->comunication_id);
             b->pubrel_broker = 0;
             break;
         }
@@ -40,7 +45,7 @@ void listener_receive_with_qos_two(int topic, int n_listener, struct broker_t *b
         listeners send the ONLY ONE message to the application;
     */  
     
-    printf("Listener %d is sending PUBCOMP to the broker...\n", n_listener);
+    printf("( Comunication %d ) Listener %d is sending PUBCOMP to the broker...\n", b->comunication_id, n_listener);
 
     b->pubcomp_broker = 1;
 }
@@ -58,7 +63,7 @@ void *listener_routine(void *arg){
 
     int n_listener = (intptr_t)arg;
     int topic = n_listener % N_TOPIC;
-    printf("Creating Listener %d for topic %d...\n", n_listener, topic);
+    printf("          [ Creating Listener %d for topic %d ]\n", n_listener, topic);
 
     while(1){
         sem_wait(&broker.semaphore_subscriber[topic][n_listener]);
@@ -72,6 +77,6 @@ void *listener_routine(void *arg){
             listener_receive_with_qos_two(topic, n_listener, &broker);
     }
 
-    printf("Ending Listener %d...\n", n_listener);
+    printf("          [ Ending Listener %d ]\n", n_listener);
     return NULL;
 }
