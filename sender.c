@@ -8,8 +8,10 @@ void sender_send_with_qos_one(int n_sender, int topic, struct broker_t *b, int i
     
     int time_before_next_sending = 0;
     int qos = 0;
+    clock_t t;
 
     sem_wait(&b->mutex_topic);
+    t = clock();
 
     /*
         send the initial message and if after a while we do not
@@ -20,6 +22,7 @@ void sender_send_with_qos_one(int n_sender, int topic, struct broker_t *b, int i
     b->message_dup = 0;
     b->message_qos = qos;
     b->topic = topic;
+    b->num_qos1 += 1;
     printf("\n\n( Communication %d ) Sender %d is sending a MESSAGE in QoS = %d with DUP = %d...\n", b->communication_id, n_sender, qos + 1, b->message_dup);
 
     sem_post(&b->message_is_arrived);
@@ -39,6 +42,9 @@ void sender_send_with_qos_one(int n_sender, int topic, struct broker_t *b, int i
     }
 
     printf("( Communication %d ) Sender %d finished is turn...\n\n\n", b->communication_id, n_sender);
+    t = clock() - t;
+    b->average_time[0] += ((double)t)/CLOCKS_PER_SEC;
+    
     sem_wait(&b->waiting_end_broker);
 
     sem_post(&b->mutex_topic);
@@ -52,8 +58,10 @@ void sender_send_with_qos_two(int n_sender, int topic, struct broker_t *b, int i
 
     int time_before_next_sending = 0;
     int qos = 1;
+    clock_t t;
 
     sem_wait(&b->mutex_topic);
+    t = clock();
 
     /*
         send message and wait PUBREC; 
@@ -72,6 +80,7 @@ void sender_send_with_qos_two(int n_sender, int topic, struct broker_t *b, int i
     b->message_dup = 0;
     b->message_qos = qos;
     b->topic = topic;
+    b->num_qos2 += 1;
     printf("\n\n( Communication %d ) Sender %d is sending a MESSAGE in QoS = %d with DUP = %d...\n", b->communication_id, n_sender, qos + 1, b->message_dup);
 
     sem_post(&b->message_is_arrived);
@@ -103,6 +112,9 @@ void sender_send_with_qos_two(int n_sender, int topic, struct broker_t *b, int i
     }
 
     printf("( Communication %d ) Sender %d finished is turn...\n\n\n", b->communication_id, n_sender);
+    t = clock() - t;
+    b->average_time[1] += ((double)t)/CLOCKS_PER_SEC;
+    
     sem_wait(&b->waiting_end_broker);
 
     sem_post(&b->mutex_topic);

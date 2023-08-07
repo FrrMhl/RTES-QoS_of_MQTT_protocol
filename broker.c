@@ -21,9 +21,9 @@ void init_broker(struct broker_t *b){
         }
     }
 
-    b->message_dup = -1;
-    b->message_qos = -1;
-    b->topic = -1;
+    b->message_dup = 0;
+    b->message_qos = 0;
+    b->topic = 0;
     b->puback = 0;
     b->puback_broker = 0;
     b->disconnected = 0;
@@ -36,6 +36,9 @@ void init_broker(struct broker_t *b){
     b->pubcomp_broker = 0;
 
     b->communication_id = 0;
+    b->average_time[0] = b->average_time[1] = 0;
+    b->num_qos1 = 0;
+    b->num_qos2 = 0;
 }
 
 
@@ -53,7 +56,7 @@ void broker_send_with_qos_one(int topic, struct broker_t *b){
     for(int i=0; i<N_LISTENER; i++){
         if(b->matrix_of_subscriber[topic][i]){
 
-            b->message_dup_broker[topic][i] += 1;
+            b->message_dup_broker[topic][i] = 0;
             int time_before_next_sending = 0;
 
             printf("( Communication %d ) Broker is sending a MESSAGE to the listener %d of TOPIC %d with DUP %d...\n", b->communication_id, i, topic, b->message_dup_broker[topic][i]);
