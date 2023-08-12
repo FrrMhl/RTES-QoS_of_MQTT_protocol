@@ -1,6 +1,6 @@
 # RTES-QoS_of_MQTT_protocol
-The purpose of this project is to ***implement*** in C the two main qualities of service (QoS 1 and 2) of the MQTT messaging protocol
-and ***compare*** the difference that there are in duration of interaction with both.
+The purpose of this project is to ***implements*** in C the two main qualities of service (QoS 1 and 2) of the MQTT messaging protocol
+and ***compares*** the difference that there are in duration of interaction with both.
 
 ## Overview
 Specifically, ***MQTT*** (Message Queuing Telemetry Transport) is a messaging protocol used primarily by Internet of Things devices (IoT)
@@ -17,9 +17,21 @@ So, in the communication partecipate:
 * ***Listeners*** = these are certain devices that, based on their interests, decide to subscribe to certain topics on the broker so that when messages
   arrive to the broker referring to that topic, they automatically receive them.
 
-The two main QoS that you can use with this protocol are:
-* ***At least once*** (QoS 1) = ...
-* ***Exactly once*** (QoS 2) = ...
+The two main QoS that you can use with this protocol (and that have been implemented) are:
+* ***At least once*** (QoS 1) = with this quality of service, there is ***certainty*** that listeners have received the message, but it could also be the case     that messages are ***delivered more than once***.
+<br> In more detail, the operation consists of the sender sending a message and if within a certain TIMEOUT it has not received a reception response (PUBACK) it resends it. The broker takes the newly received message and sends it to all the listeners subscribed to that particular topic and waits for all of them to send their acknowledgement (PUBACK). Eventually, once the broker has received all the PUBACKs, he also sends it to the sender who will be assured that all the listeners have received his message.
+<br> Due to connection problems, it might happen that too much time passes without a response from when the sender sends the message, so he sends the message again, which will be processed by the broker and sent to the listeners for a second time.
+<br> Below you can see a representation of a connection with QoS 1;
+
+  ![Diagramma_qos1](https://github.com/FrrMhl/RTES-QoS_of_MQTT_protocol/assets/64307404/2e3dfb5e-a510-413a-94fe-aedbc9594ac6)
+
+* ***Exactly once*** (QoS 2) = this represents the most reliable quality of service but also the slowest because of the ***4 way handshake*** that allows the MQTT protocol to deliver the message exactly once without having duplicates and to have the certainty that listeners have received the message.
+<br> Regarding specifically how it works, the sender initially sends a message to the broker and if it does not respond within a certain TIMEOUT it will be sent back; the broker, once received, sends confirmation of receipt to the sender (PUBREC). Then the sender sends the PUBREL message to the broker, which is intended to let him know that from that point on he will not receive any more messages and can therefore process the message having the assurance that he will not receive duplicates. Similarly, the broker performs this 4 way handshake with the listeners and then they too will be assured that they will not process the same message multiple times. Eventually all the listeners send the end-of-processing message (PUBCOMP) to the broker who will also send the same to the sender and with this, a connection with QoS 2 is concluded.
+<br> Below you can see a representation of a connection with QoS 2;
+
+  ![Diagramma_qos2](https://github.com/FrrMhl/RTES-QoS_of_MQTT_protocol/assets/64307404/f1faa06e-1841-4d5d-9015-98123136f421)
+
+
 
 ## Implementation
 
