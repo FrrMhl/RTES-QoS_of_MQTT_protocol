@@ -13,7 +13,7 @@ void init_broker(struct broker_t *b){
     for(int i=0; i<N_TOPIC; i++){
         for(int j=0; j<N_LISTENER; j++){
             sem_init(&b->semaphore_subscriber[i][j], 0, 0);
-            b->message_dup_broker[i][j] = -1;
+            b->message_dup_broker[i][j] = 0;
             if(i == j % N_TOPIC)
                 b->matrix_of_subscriber[i][j] = 1;
             else
@@ -130,7 +130,7 @@ void broker_send_with_qos_two(int topic, struct broker_t *b){
     for(int i=0; i<N_LISTENER; i++){
         if(b->matrix_of_subscriber[topic][i]){
 
-            b->message_dup_broker[topic][i] += 1;
+            b->message_dup_broker[topic][i] = 0;
             int time_before_next_sending = 0;
 
             printf("( Communication %d ) Broker is sending a MESSAGE to the listener %d of TOPIC %d with DUP %d...\n", b->communication_id, i, topic, b->message_dup_broker[topic][i]);
