@@ -34,9 +34,21 @@ The two main QoS that you can use with this protocol (and that have been impleme
 
 
 ## Implementation
+In terms of design choices, it was decided to make the broker a shared resource among the various senders and then manage access to it through ***semaphores***.
+Specifically, the semaphores implemented are:
+* ***mutex_topic*** = is a binary semaphore that allows one sender at a time to access the broker resource.
+* ***message_is_arrived*** = is a private semaphore on which the broker waits for the next message from a sender.
+* ***waiting_end_broker*** = is a private semaphore on which the current sender waits for the end of the broker in handling his message; in this way, once he wakes up, via the mutex_topic semaphore he can wakes up the next sender.
+* ***semaphore_subscriber*** = is a matrix of private semaphores (one for each listeners and topic) where subscribers waiting new messages from the broker.
 
-semafori...
-scelte progettuali...
+In addition, it was decided to have available:
+* 4 senders.
+* 3 interation, and so 3 messages, for each sender. 
+* 3 topic (randomly assigned among the various listeners and senders);
+* 1 second of timeout before re-sendig the message in case of too much time without any response.
+* 20 listeners for the generic test and from 1 to 1000 listeners to compare the performance between sending message wit QoS 1 and QoS 2.
+
+Of course, these parameters could be changed by going into the ***main.h*** file.
 
 ## Results
 As can be seen from the following plot, the results obtained are in line with the actual behavior of QoS 1 and QoS 2; in fact, remembering
